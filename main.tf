@@ -91,21 +91,21 @@ resource "kubernetes_namespace" "apps" {
 resource "helm_release" "tekton_pipeline" {
   name = "tekton"
   chart = "tekton-pipeline"
-  repository = "https://github.com/cdfoundation/tekton-helm-chart"
+  repository = "https://cdfoundation.github.io/tekton-helm-chart/"
   namespace = kubernetes_namespace.tekton.metadata[0].name
 
-  set {
-    name = "controller.tolerations[0].key"
-    value = "tekton-node-pool"
-  }
-
-  set {
-    name = "controller.tolerations[0].value"
-    value = "true"
-  }
-
-  set {
-    name = "controller.tolerations[0].effect"
-    value = "PREFER_NO_SCHEDULE"
-  }
+  set = [
+    {
+      name = "controller.tolerations[0].key"
+      value = "tekton-node-pool"
+    },
+    {
+      name = "controller.tolerations[0].value"
+      value = "true"
+    },
+    {
+      name = "controller.tolerations[0].effect"
+      value = "PREFER_NO_SCHEDULE"
+    }
+  ]
 }
