@@ -1,11 +1,11 @@
-name: Terraform Plan Actions
-run-name: ${{ github.actor }} is running Terraform Plan
+name: Terraform Apply Actions 
+run-name: ${{ github.actor }} is running Terraform Apply
 on: 
   push:
     branches: 
       - main
 jobs:
-  terraform-plan:
+  terraform-apply:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
