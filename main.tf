@@ -16,15 +16,52 @@ provider "helm" {
   }
 }
 
+module "vpc" {
+  source  = "terraform-google-modules/network/google"
+  version = "~> 11.1"
+
+  project_id   = var.project_id
+  network_name = local.network_name
+  routing_mode = "GLOBAL"
+
+  subnets = [
+      {
+          subnet_name           = "${local.network_name}-subnet-01"
+          subnet_ip             = "10.10.10.0/24"
+          subnet_region         = "us-west1"
+      },
+      {
+          subnet_name           = "${local.network_name}-subnet-02"
+          subnet_ip             = "10.10.20.0/24"
+          subnet_region         = "us-west1"
+          subnet_private_access = "true"
+          subnet_flow_logs      = "true"
+      },
+  ]
+
+  secondary_ranges = {
+    "${local.network_name}_subnet-02" = [
+      {
+        range_name    = "${local.network_name}-subnet-02-pods"
+        ip_cidr_range = "192.168.64.0/24"
+      },
+      {
+        range_name    = "${local.network_name}-subnet-02-services"
+        ip_cidr_range = "192.168.65.0/24"
+      },
+    ]
+}
+}
+
 module "gke" {
   source                     = "terraform-google-modules/kubernetes-engine/google"
   project_id                 = var.project_id
   name                       = local.cluster_name
   region                     = local.cluster_region
-  network                    = "vpc-01"
-  subnetwork                 = "us-central1-01"
-  ip_range_pods              = "us-central1-01-gke-01-pods"
-  ip_range_services          = "us-central1-01-gke-01-services"
+  network                    = module.vpc.network_name
+  subnetwork                 = "${local.network_name}-subnet-02"
+  ip_range_pods              = "${local.network_name}-subnet-02-pods"
+  ip_range_services          = "${local.network_name}-subnet-02-services"
   http_load_balancing        = false
   network_policy             = false
   horizontal_pod_autoscaling = true
