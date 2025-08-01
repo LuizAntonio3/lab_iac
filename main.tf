@@ -1,3 +1,5 @@
+# Version: 2025-08-01 - 09:47
+
 data "google_client_config" "default" {}
 
 provider "kubernetes" {
