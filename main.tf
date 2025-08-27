@@ -130,7 +130,7 @@ resource "kubernetes_namespace" "apps" {
 resource "helm_release" "tekton_pipeline" {
   name = "tekton"
   chart = "tekton-pipeline"
-  repository = "https://cdfoundation.github.io/tekton-helm-chart/"
+  repository = "https://github.com/cdfoundation/tekton-helm-chart"
   namespace = kubernetes_namespace.tekton.metadata[0].name
 
   set = [
