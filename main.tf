@@ -28,12 +28,12 @@ module "vpc" {
       {
           subnet_name           = "${local.network_name}-subnet-01"
           subnet_ip             = "10.10.10.0/24"
-          subnet_region         = "us-west1"
+          subnet_region         = local.cluster_region
       },
       {
           subnet_name           = "${local.network_name}-subnet-02"
           subnet_ip             = "10.10.20.0/24"
-          subnet_region         = "us-west1"
+          subnet_region         = local.cluster_region
           subnet_private_access = "true"
           subnet_flow_logs      = "true"
       },
