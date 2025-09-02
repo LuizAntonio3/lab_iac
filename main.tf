@@ -40,14 +40,10 @@ module "vpc" {
   ]
 
   secondary_ranges = {
-    "${local.network_name}_subnet-02" = [
+    "${local.network_name}-subnet-02" = [
       {
         range_name    = "${local.network_name}-subnet-02-pods"
-        ip_cidr_range = "192.168.64.0/24"
-      },
-      {
-        range_name    = "${local.network_name}-subnet-02-services"
-        ip_cidr_range = "192.168.65.0/24"
+        ip_cidr_range = "192.168.64.0/20"
       },
     ]
 }
@@ -61,32 +57,26 @@ module "gke" {
   network                    = module.vpc.network_name
   subnetwork                 = "${local.network_name}-subnet-02"
   ip_range_pods              = "${local.network_name}-subnet-02-pods"
-  ip_range_services          = "${local.network_name}-subnet-02-services"
   http_load_balancing        = false
   network_policy             = false
   horizontal_pod_autoscaling = true
   filestore_csi_driver       = false
   dns_cache                  = false
 
+  depends_on = [ module.vpc ]
+
+  deletion_protection = false
+
   node_pools = [
     {
       name                        = "tekton-node-pool"
       machine_type                = "e2-medium"
       min_count                   = 1
-      max_count                   = 10      
+      max_count                   = 1   
       disk_size_gb                = 100
       disk_type                   = "pd-standard"
-      initial_node_count          = 5
+      initial_node_count          = 1
     },
-    {
-      name                        = "apps-node-pool"
-      machine_type                = "e2-medium"
-      min_count                   = 1
-      max_count                   = 10      
-      disk_size_gb                = 50
-      disk_type                   = "pd-standard"
-      initial_node_count          = 5
-    }
   ]
 
   node_pools_oauth_scopes = {
@@ -98,26 +88,26 @@ module "gke" {
 
   node_pools_taints = {
     all = []
-
-    tekton-node-pool = [
-      {
-        key    = "tekton-node-pool"
-        value  = true
-        effect = "PREFER_NO_SCHEDULE"
-      },
-    ]
   }
 
   node_pools_tags = {
     all = []
     tekton-node-pool = ["tekton-node-pool"]
-    app-node-pool = ["app-node-pool"]
   }
 }
 
 resource "kubernetes_namespace" "tekton" {
   metadata {
     name = "tekton-pipelines"
+    
+    # to handle helm bug of not creating namespace before the release
+    labels = {
+      "app.kubernetes.io/managed-by" = "Helm"
+    }
+    annotations = {
+      "meta.helm.sh/release-name"      = "tekton"
+      "meta.helm.sh/release-namespace" = "tekton-pipelines"
+    }
   }
 }
 
@@ -130,21 +120,10 @@ resource "kubernetes_namespace" "apps" {
 resource "helm_release" "tekton_pipeline" {
   name = "tekton"
   chart = "tekton-pipeline"
-  repository = "https://github.com/cdfoundation/tekton-helm-chart"
+  repository = "https://cdfoundation.github.io/tekton-helm-chart/"
   namespace = kubernetes_namespace.tekton.metadata[0].name
 
-  set = [
-    {
-      name = "controller.tolerations[0].key"
-      value = "tekton-node-pool"
-    },
-    {
-      name = "controller.tolerations[0].value"
-      value = "true"
-    },
-    {
-      name = "controller.tolerations[0].effect"
-      value = "PREFER_NO_SCHEDULE"
-    }
-  ]
+  create_namespace = false
+
+  depends_on = [ kubernetes_namespace.tekton ]
 }
